@@ -1,0 +1,51 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xfsenigmas.aws.upbound.io
+spec:
+  compositeTypeRef:
+    apiVersion: aws.upbound.io/v1alpha1
+    kind: XFSEnigma
+  mode: Pipeline
+  pipeline:
+  - functionRef:
+      name: crossplane-contrib-function-patch-and-transform
+    step: patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: filesystem
+        base:
+          apiVersion: efs.aws.upbound.io/v1beta1
+          kind: FileSystem
+          spec:
+            forProvider:
+              creationToken: my-product
+              region: us-west-1
+              tags:
+                Name: MyProduct
+        patches:
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.id 
+          toFieldPath: status.fsId
+      - name: chart
+        base:
+          apiVersion: helm.crossplane.io/v1beta1
+          kind: Release
+          spec:
+            forProvider:
+              chart:
+                name: aws-efs-csi-driver
+                repository: https://kubernetes-sigs.github.io/aws-efs-csi-driver/
+                version: 3.0.8
+              namespace: kube-system
+              set:
+              - name: fileSystemId
+                value: patched
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.fsId
+          toFieldPath: spec.forProvider.set[0].value
+          policy:
+            fromFieldPath: Required

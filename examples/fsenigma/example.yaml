@@ -1,0 +1,8 @@
+apiVersion: aws.upbound.io/v1alpha1
+kind: FSEnigma
+metadata:
+  name: example
+  namespace: default
+spec: {}
+status:
+  fsId: fs-8888
